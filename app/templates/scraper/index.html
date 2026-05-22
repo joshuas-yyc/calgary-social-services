@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Scraper — Calgary Social Services{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <div class="page-title">Scraper</div>
+    <div class="page-subtitle">Pull new organizations from external sources into the staging queue</div>
+  </div>
+</div>
+
+<div style="max-width:640px;">
+  {% for key, src in sources.items() %}
+  <div class="card" style="margin-bottom:1rem;">
+    <div style="font-weight:600; margin-bottom:0.25rem;">{{ src.label }}</div>
+    <div style="font-size:13px; color:var(--muted); margin-bottom:0.75rem;">{{ src.description }}</div>
+    <div style="font-size:12px; color:var(--muted); margin-bottom:0.75rem; word-break:break-all;">
+      <a href="{{ src.url }}" target="_blank" rel="noopener" style="color:var(--accent);">{{ src.url }}</a>
+    </div>
+    <form method="post" action="/scrape/run">
+      <input type="hidden" name="source" value="{{ key }}">
+      <button type="submit" class="btn btn-primary btn-sm">Run scrape</button>
+    </form>
+  </div>
+  {% endfor %}
+
+  <p style="font-size:12px; color:var(--muted); margin-top:1.5rem;">
+    Results land in <a href="/staging/">Staging</a> for review. Already-known organizations are skipped automatically.
+  </p>
+</div>
+
+{% endblock %}

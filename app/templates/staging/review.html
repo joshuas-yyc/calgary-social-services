@@ -13,15 +13,56 @@
   <!-- Raw data panel -->
   <div>
     <div class="card" style="margin-bottom:1.5rem;">
-      <div style="font-weight:600; margin-bottom:1rem; font-size:13px; text-transform:uppercase; letter-spacing:0.04em; color:var(--muted);">Raw import data</div>
-      <table>
-        {% for key, val in raw.items() %}
-        <tr>
-          <td style="color:var(--muted); width:180px; font-family:monospace; font-size:12px;">{{ key }}</td>
-          <td style="font-size:13px;">{{ val }}</td>
-        </tr>
+      <div style="font-weight:600; margin-bottom:1rem; font-size:13px; text-transform:uppercase; letter-spacing:0.04em; color:var(--muted);">Scraped data</div>
+
+      {% if raw.org_name %}
+      <div style="margin-bottom:0.75rem;">
+        <span style="font-size:11px; color:var(--muted); text-transform:uppercase;">Organization</span>
+        <div style="font-weight:600; font-size:15px;">{{ raw.org_name }}</div>
+      </div>
+      {% endif %}
+
+      {% if raw.description %}
+      <div style="margin-bottom:0.75rem;">
+        <span style="font-size:11px; color:var(--muted); text-transform:uppercase;">Description</span>
+        <div style="font-size:13px;">{{ raw.description }}</div>
+      </div>
+      {% endif %}
+
+      {% if raw.shelters %}
+      <div style="margin-bottom:0.75rem;">
+        <span style="font-size:11px; color:var(--muted); text-transform:uppercase;">Shelter programs on record</span>
+        {% for s in raw.shelters %}
+        <div style="font-size:13px; padding:0.25rem 0; border-bottom:1px solid var(--border);">
+          {{ s.shelter_name }} <span style="color:var(--muted); font-size:11px;">· {{ s.shelter_type }}</span>
+        </div>
         {% endfor %}
-      </table>
+      </div>
+      {% endif %}
+
+      {% if raw.contacts %}
+      <div style="margin-bottom:0.75rem;">
+        <span style="font-size:11px; color:var(--muted); text-transform:uppercase;">Contacts found</span>
+        {% for c in raw.contacts %}
+        <div style="font-size:13px;">
+          <span style="color:var(--muted); text-transform:uppercase; font-size:11px;">{{ c.kind }}</span> {{ c.value }}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if raw.notes %}
+      <div style="font-size:12px; color:var(--warn); background:rgba(245,158,11,0.07); border:1px solid rgba(245,158,11,0.2); border-radius:6px; padding:0.5rem 0.75rem; margin-top:0.5rem;">
+        {{ raw.notes }}
+      </div>
+      {% endif %}
+
+      {% if not raw.org_name %}
+      <div style="font-size:12px; color:var(--muted); margin-top:0.5rem;">
+        <strong>Raw JSON:</strong>
+        <pre style="margin-top:0.25rem; white-space:pre-wrap; font-size:11px;">{{ raw | tojson(indent=2) }}</pre>
+      </div>
+      {% endif %}
     </div>
 
     <div style="display:flex; gap:0.75rem;">
@@ -37,25 +78,35 @@
     <div class="card">
       <div style="font-weight:600; margin-bottom:1rem; color:var(--success);">Accept &amp; create service</div>
       <form method="post" action="/staging/{{ item.id }}/accept">
+        {% set scraped_org = raw.org_name or raw.get('organization', '') %}
+        {% set first_shelter = raw.shelters[0] if raw.shelters else none %}
+
         <div class="form-group" style="margin-bottom:1rem;">
           <label>Service name *</label>
-          <input type="text" name="service_name" value="{{ raw.get('name', raw.get('service_name', raw.get('program_name', ''))) }}" required>
+          <input type="text" name="service_name"
+            value="{{ first_shelter.shelter_name if first_shelter else raw.get('name', raw.get('service_name', raw.get('program_name', scraped_org))) }}"
+            required>
+          {% if raw.shelters and raw.shelters|length > 1 %}
+          <div style="font-size:11px; color:var(--muted); margin-top:0.25rem;">
+            {{ raw.shelters|length }} programs found — accept one at a time, then add more via the org/location pages.
+          </div>
+          {% endif %}
         </div>
 
         <div class="form-group" style="margin-bottom:1rem;">
           <label>Description</label>
-          <textarea name="description">{{ raw.get('description', raw.get('desc', '')) }}</textarea>
+          <textarea name="description">{{ raw.get('description', '') }}</textarea>
         </div>
 
         <div class="form-group" style="margin-bottom:1rem;">
           <label>Organization</label>
           <select name="org_action" id="org_action" onchange="toggleOrgNew()">
             <option value="existing">Use existing org</option>
-            <option value="new">Create new org</option>
+            <option value="new" {% if scraped_org %}selected{% endif %}>Create new org</option>
           </select>
         </div>
 
-        <div id="org-existing" style="margin-bottom:1rem;">
+        <div id="org-existing" style="margin-bottom:1rem;{% if scraped_org %} display:none;{% endif %}">
           <select name="organization_id">
             <option value="">— select —</option>
             {% for org in orgs %}
@@ -64,8 +115,8 @@
           </select>
         </div>
 
-        <div id="org-new" style="display:none; margin-bottom:1rem;">
-          <input type="text" name="org_name" value="{{ raw.get('organization', raw.get('org_name', '')) }}" placeholder="Organization name">
+        <div id="org-new" style="{% if not scraped_org %}display:none; {% endif %}margin-bottom:1rem;">
+          <input type="text" name="org_name" value="{{ scraped_org }}" placeholder="Organization name">
         </div>
 
         <div class="form-group" style="margin-bottom:1rem;">
@@ -112,7 +163,10 @@
           <select name="primary_category_id">
             <option value="">— none —</option>
             {% for cat in categories %}
-            <option value="{{ cat.id }}">{{ '  └ ' if cat.parent_id else '' }}{{ cat.name }}</option>
+            <option value="{{ cat.id }}"
+              {% if raw.suggested_category and raw.suggested_category == cat.slug %}selected{% endif %}>
+              {{ '  └ ' if cat.parent_id else '' }}{{ cat.name }}
+            </option>
             {% endfor %}
           </select>
         </div>

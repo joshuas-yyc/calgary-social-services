@@ -3,7 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from app.database import init_db
-from app.routers import orgs, locations, services_, search, queue, export_, staging, contacts
+from app.routers import orgs, locations, services_, search, queue, export_, staging, contacts, scraper
 
 app = FastAPI(title="Calgary Social Services Dashboard")
 
@@ -19,6 +19,7 @@ app.include_router(queue.router)
 app.include_router(export_.router)
 app.include_router(staging.router)
 app.include_router(contacts.router)
+app.include_router(scraper.router)
 
 
 @app.on_event("startup")

@@ -17,11 +17,17 @@
       <a href="/orgs/">Orgs</a>
       <a href="/queue/">Queue</a>
       <a href="/staging/">Staging</a>
+      <a href="/scrape/">Scraper</a>
       <a href="/export/">Export</a>
     </div>
   </nav>
   {% if request.query_params.get('audit_flagged') %}
   <div class="flash flash-info">Staleness audit complete — {{ request.query_params.get('audit_flagged') }} records flagged for review.</div>
+  {% endif %}
+  {% if request.query_params.get('scraped') %}
+  <div class="flash flash-success">
+    Scrape complete — {{ request.query_params.get('scraped') }} new records staged{% if request.query_params.get('skipped') %}, {{ request.query_params.get('skipped') }} already known{% endif %}{% if request.query_params.get('scrape_errors') %}, {{ request.query_params.get('scrape_errors') }} error(s){% endif %}.
+  </div>
   {% endif %}
   <main class="main">
     {% block content %}{% endblock %}
