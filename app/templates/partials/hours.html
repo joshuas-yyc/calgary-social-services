@@ -1,0 +1,59 @@
+{# Params: hours, service_id #}
+{% set day_names = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
+<div class="detail-section">
+  <h3>Hours</h3>
+
+  {% if hours %}
+  <div style="margin-bottom:0.75rem;">
+    {% for h in hours %}
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:0.375rem 0; border-bottom:1px solid var(--border); font-size:13px;">
+      <span>
+        <span style="color:var(--muted); min-width:90px; display:inline-block;">{{ day_names[h.day_of_week] }}</span>
+        {% if h.is_24_7 %}24 / 7{% else %}{{ h.opens or '?' }} – {{ h.closes or '?' }}{% endif %}
+        {% if h.note %}<span style="color:var(--muted); margin-left:0.5rem; font-size:12px;">{{ h.note }}</span>{% endif %}
+      </span>
+      <form method="post" action="/hours/{{ h.id }}/delete" style="margin:0;">
+        <button type="submit" class="btn btn-warn btn-sm" style="padding:0.125rem 0.5rem; font-size:11px;">✕</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p style="color:var(--muted); font-size:13px; margin-bottom:0.75rem;">No hours on record.</p>
+  {% endif %}
+
+  <details style="margin-top:0.5rem;">
+    <summary style="font-size:13px; cursor:pointer; color:var(--accent); user-select:none;">+ Add hours</summary>
+    <form method="post" action="/hours/" style="margin-top:0.75rem; display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-end;">
+      <input type="hidden" name="service_id" value="{{ service_id }}">
+      <div>
+        <label style="font-size:11px; color:var(--muted); display:block; margin-bottom:0.25rem;">Day</label>
+        <select name="day_of_week" style="font-size:13px;">
+          {% for i, name in enumerate(day_names) %}
+          <option value="{{ i }}">{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px; color:var(--muted); display:block; margin-bottom:0.25rem;">Opens</label>
+        <input type="time" name="opens" style="font-size:13px; width:110px;">
+      </div>
+      <div>
+        <label style="font-size:11px; color:var(--muted); display:block; margin-bottom:0.25rem;">Closes</label>
+        <input type="time" name="closes" style="font-size:13px; width:110px;">
+      </div>
+      <div>
+        <label style="font-size:11px; color:var(--muted); display:block; margin-bottom:0.25rem;">24/7?</label>
+        <select name="is_24_7" style="font-size:13px;">
+          <option value="0">No</option>
+          <option value="1">Yes</option>
+        </select>
+      </div>
+      <div style="flex:1; min-width:120px;">
+        <label style="font-size:11px; color:var(--muted); display:block; margin-bottom:0.25rem;">Note</label>
+        <input type="text" name="note" placeholder="e.g. Drop-in only" style="width:100%; font-size:13px;">
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Add</button>
+    </form>
+  </details>
+</div>

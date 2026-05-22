@@ -72,12 +72,31 @@ def export_geojson(conn: sqlite3.Connection) -> str:
     return json.dumps({"type": "FeatureCollection", "features": features}, indent=2)
 
 
+def _primary_contact(conn, service_id: int, kind: str) -> str:
+    row = conn.execute(
+        "SELECT value FROM contacts WHERE owner_type='service' AND owner_id=? AND kind=? ORDER BY is_primary DESC LIMIT 1",
+        (service_id, kind),
+    ).fetchone()
+    if row:
+        return row["value"]
+    # Fall back to org-level contact
+    row = conn.execute("""
+        SELECT c.value FROM contacts c
+        JOIN services s ON s.id=?
+        JOIN locations l ON l.id=s.location_id
+        WHERE c.owner_type='org' AND c.owner_id=l.organization_id AND c.kind=?
+        ORDER BY c.is_primary DESC LIMIT 1
+    """, (service_id, kind)).fetchone()
+    return row["value"] if row else ""
+
+
 def export_csv(conn: sqlite3.Connection) -> str:
     rows = _base_query(conn)
     if not rows:
         return ""
     buf = io.StringIO()
-    cols = list(dict(rows[0]).keys()) + ["populations"]
+    extra_cols = ["phone", "email", "website", "facebook", "populations"]
+    cols = list(dict(rows[0]).keys()) + extra_cols
     writer = csv.DictWriter(buf, fieldnames=cols)
     writer.writeheader()
     for r in rows:
@@ -88,5 +107,9 @@ def export_csv(conn: sqlite3.Connection) -> str:
             WHERE sp.service_id = ?
         """, (r["id"],)).fetchall()
         d["populations"] = "; ".join(p["name"] for p in pops)
+        d["phone"] = _primary_contact(conn, r["id"], "phone") or _primary_contact(conn, r["id"], "intake_line")
+        d["email"] = _primary_contact(conn, r["id"], "email")
+        d["website"] = _primary_contact(conn, r["id"], "web")
+        d["facebook"] = _primary_contact(conn, r["id"], "facebook")
         writer.writerow(d)
     return buf.getvalue()

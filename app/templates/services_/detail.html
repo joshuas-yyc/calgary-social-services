@@ -103,21 +103,9 @@
     </div>
     {% endif %}
 
-    {% if hours %}
-    <div class="detail-section">
-      <h3>Hours</h3>
-      {% set days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}
-      <table>
-        {% for h in hours %}
-        <tr>
-          <td style="color:var(--muted);width:60px;">{{ days[h.day_of_week] }}</td>
-          <td>{% if h.is_24_7 %}24/7{% else %}{{ h.opens or '?' }} – {{ h.closes or '?' }}{% endif %}</td>
-          {% if h.note %}<td style="color:var(--muted);">{{ h.note }}</td>{% endif %}
-        </tr>
-        {% endfor %}
-      </table>
-    </div>
-    {% endif %}
+    {% with service_id=svc.id %}
+      {% include "partials/hours.html" %}
+    {% endwith %}
 
     {% with owner_type="service", owner_id=svc.id %}
       {% include "partials/contacts.html" %}

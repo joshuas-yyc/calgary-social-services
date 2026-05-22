@@ -14,13 +14,27 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("/", response_class=HTMLResponse)
 def staging_list(request: Request):
     with db() as conn:
-        items = conn.execute("""
+        rows = conn.execute("""
             SELECT st.*, s.title as source_title
             FROM staging st LEFT JOIN sources s ON s.id=st.source_id
             WHERE st.status='pending'
             ORDER BY st.created_at DESC
         """).fetchall()
         sources = conn.execute("SELECT id, title, source_type FROM sources ORDER BY retrieved_at DESC LIMIT 50").fetchall()
+
+    # Parse display label from raw JSON so the list is readable
+    items = []
+    for row in rows:
+        try:
+            d = json.loads(row["raw_json"])
+            label = (d.get("org_name") or d.get("name") or d.get("service_name")
+                     or d.get("organization") or None)
+            shelters = d.get("shelters", [])
+        except Exception:
+            label = None
+            shelters = []
+        items.append({"row": row, "label": label, "shelter_count": len(shelters)})
+
     return templates.TemplateResponse(request, "staging/list.html", {
         "items": items, "sources": sources,
     })
@@ -71,6 +85,27 @@ async def upload_staging(
     return RedirectResponse("/staging", status_code=303)
 
 
+def _similar_orgs(conn, name: str) -> list:
+    """Return existing orgs sharing at least one significant word with `name`."""
+    if not name:
+        return []
+    stop = {"the", "of", "and", "for", "in", "at", "a", "an", "calgary", "centre", "center"}
+    words = [w.lower() for w in name.split() if len(w) > 2 and w.lower() not in stop]
+    if not words:
+        return []
+    # Use LIKE for each significant word — SQLite, no FTS on org names
+    matches = {}
+    for word in words:
+        rows = conn.execute(
+            "SELECT id, name FROM organizations WHERE LOWER(name) LIKE ? AND status='active'",
+            (f"%{word}%",),
+        ).fetchall()
+        for r in rows:
+            if r["name"].lower() != name.lower():
+                matches[r["id"]] = r["name"]
+    return [{"id": k, "name": v} for k, v in matches.items()]
+
+
 @router.get("/{item_id}", response_class=HTMLResponse)
 def staging_review(request: Request, item_id: int):
     with db() as conn:
@@ -86,10 +121,11 @@ def staging_review(request: Request, item_id: int):
             FROM locations l JOIN organizations o ON o.id=l.organization_id
             WHERE l.status='active' ORDER BY o.name, l.label
         """).fetchall()
+        similar = _similar_orgs(conn, raw.get("org_name") or raw.get("organization", ""))
     return templates.TemplateResponse(request, "staging/review.html", {
         "item": item, "raw": raw,
         "orgs": orgs, "categories": categories, "populations": populations,
-        "locations": locations,
+        "locations": locations, "similar_orgs": similar,
     })
 
 

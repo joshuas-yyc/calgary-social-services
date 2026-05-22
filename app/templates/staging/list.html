@@ -52,18 +52,29 @@
 {% if items %}
 <div class="card" style="padding:0; overflow:hidden;">
   {% for item in items %}
-  <div style="padding:1rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:1rem;">
+  {% set row = item.row %}
+  <div style="padding:0.875rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:1rem;">
     <div style="flex:1; min-width:0;">
-      <div style="font-size:13px; font-family:monospace; color:var(--muted); overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">
-        {{ item.raw_json[:120] }}…
+      {% if item.label %}
+      <div style="font-weight:600; font-size:14px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">
+        {{ item.label }}
+        {% if item.shelter_count > 0 %}
+        <span style="font-size:11px; color:var(--muted); font-weight:normal; margin-left:0.5rem;">{{ item.shelter_count }} shelter program{{ 's' if item.shelter_count != 1 }}</span>
+        {% endif %}
       </div>
-      <div style="font-size:11px; color:var(--muted); margin-top:0.25rem;">
-        {{ item.source_title or 'No source' }} · Added {{ item.created_at[:10] }}
+      {% else %}
+      <div style="font-size:12px; font-family:monospace; color:var(--muted); overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">
+        {{ row.raw_json[:100] }}…
+      </div>
+      {% endif %}
+      <div style="font-size:11px; color:var(--muted); margin-top:0.2rem;">
+        {{ row.source_title or 'No source' }} · {{ row.created_at[:10] }}
       </div>
     </div>
     <div style="display:flex; gap:0.5rem; flex-shrink:0;">
-      <a href="/staging/{{ item.id }}" class="btn btn-primary btn-sm">Review</a>
-      <form method="post" action="/staging/{{ item.id }}/reject">
+      <a href="/staging/{{ row.id }}" class="btn btn-primary btn-sm">Review</a>
+      <form method="post" action="/staging/{{ row.id }}/reject">
+        <input type="hidden" name="note" value="Rejected from list">
         <button type="submit" class="btn btn-danger btn-sm">Reject</button>
       </form>
     </div>

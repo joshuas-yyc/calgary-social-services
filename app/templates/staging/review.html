@@ -75,6 +75,19 @@
 
   <!-- Accept form -->
   <div>
+    {% if similar_orgs %}
+    <div class="card" style="border-color:rgba(245,158,11,0.4); margin-bottom:1rem;">
+      <div style="font-weight:600; color:var(--warn); margin-bottom:0.5rem;">Possible duplicate organizations</div>
+      <div style="font-size:13px; color:var(--muted); margin-bottom:0.75rem;">These existing orgs share words with "{{ raw.org_name or raw.get('organization','') }}". Check before creating a new one.</div>
+      {% for s in similar_orgs %}
+      <div style="padding:0.375rem 0; border-bottom:1px solid var(--border); font-size:13px; display:flex; justify-content:space-between; align-items:center;">
+        <span>{{ s.name }}</span>
+        <a href="/orgs/{{ s.id }}" target="_blank" style="font-size:11px; color:var(--accent);">View ↗</a>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="card">
       <div style="font-weight:600; margin-bottom:1rem; color:var(--success);">Accept &amp; create service</div>
       <form method="post" action="/staging/{{ item.id }}/accept">

@@ -8,6 +8,65 @@ router = APIRouter(tags=["search"])
 templates = Jinja2Templates(directory="app/templates")
 
 
+@router.get("/dashboard", response_class=HTMLResponse)
+def dashboard(request: Request):
+    with db() as conn:
+        orgs_count = conn.execute("SELECT COUNT(*) FROM organizations WHERE status='active'").fetchone()[0]
+        locs_count = conn.execute("SELECT COUNT(*) FROM locations WHERE status='active'").fetchone()[0]
+        svcs_total = conn.execute("SELECT COUNT(*) FROM services WHERE status != 'closed'").fetchone()[0]
+        verified = conn.execute("SELECT COUNT(*) FROM services WHERE verified_at IS NOT NULL AND status != 'closed'").fetchone()[0]
+        unverified = conn.execute("SELECT COUNT(*) FROM services WHERE verified_at IS NULL AND status='active'").fetchone()[0]
+        closed = conn.execute("SELECT COUNT(*) FROM services WHERE status='closed'").fetchone()[0]
+
+        category_counts = conn.execute("""
+            SELECT c.name as cat_name, COUNT(s.id) as cnt
+            FROM services s
+            LEFT JOIN categories c ON c.id = s.primary_category_id
+            WHERE s.status != 'closed'
+            GROUP BY c.id, c.name
+            ORDER BY cnt DESC
+        """).fetchall()
+
+        queue_counts_rows = conn.execute("""
+            SELECT reason, COUNT(*) as cnt FROM review_queue
+            WHERE status='open' GROUP BY reason
+        """).fetchall()
+        queue_counts = {r["reason"]: r["cnt"] for r in queue_counts_rows}
+
+        staging_rows = conn.execute("""
+            SELECT status, COUNT(*) as cnt FROM staging GROUP BY status
+        """).fetchall()
+        staging = {r["status"]: r["cnt"] for r in staging_rows}
+
+        recent_services = conn.execute("""
+            SELECT s.id, s.name, s.created_at, o.name as org_name
+            FROM services s
+            JOIN locations l ON l.id=s.location_id
+            JOIN organizations o ON o.id=l.organization_id
+            ORDER BY s.created_at DESC LIMIT 8
+        """).fetchall()
+
+    verified_pct = round(verified / svcs_total * 100) if svcs_total else 0
+
+    return templates.TemplateResponse(request, "dashboard.html", {
+        "stats": {
+            "orgs": orgs_count,
+            "locations": locs_count,
+            "services": svcs_total,
+            "verified": verified,
+            "unverified": unverified,
+            "closed": closed,
+            "verified_pct": verified_pct,
+            "staging_pending": staging.get("pending", 0),
+            "staging_accepted": staging.get("accepted", 0),
+            "staging_rejected": staging.get("rejected", 0),
+        },
+        "category_counts": category_counts,
+        "queue_counts": queue_counts,
+        "recent_services": recent_services,
+    })
+
+
 def build_search_query(
     q: str, category_id: int, recovery_subtype_id: int, population_id: int,
     quadrant: str, cost_model: str, access_mode: str, is_24_7: bool,
