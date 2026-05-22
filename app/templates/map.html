@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Map — Calgary Social Services{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  .main { padding: 0.75rem; }
+  #map { height: calc(100vh - 80px); border-radius: 10px; }
+  .map-legend { position: absolute; bottom: 2rem; right: 2rem; z-index: 1000; background: #1a1d27; border: 1px solid #2e3147; border-radius: 8px; padding: 0.75rem 1rem; font-size: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.2rem 0; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .popup-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .popup-org { color: #6b7280; font-size: 12px; margin-bottom: 6px; }
+  .popup-link { color: #4f7ef8; font-size: 12px; }
+  .leaflet-popup-content-wrapper { background: #1a1d27; color: #e2e4ef; border: 1px solid #2e3147; }
+  .leaflet-popup-tip { background: #1a1d27; }
+</style>
+{% endblock %}
+{% block content %}
+<div style="position:relative;">
+  <div id="map"></div>
+  <div class="map-legend">
+    <div style="font-weight:600; margin-bottom:0.5rem; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#6b7280;">Categories</div>
+    {% for cat in categories %}
+    <div class="legend-item">
+      <div class="legend-dot cat-{{ cat.slug }}"></div>
+      <span>{{ cat.name }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+<script>
+const CAT_COLORS = {
+  'housing': '#8b5cf6',
+  'mental-health': '#ec4899',
+  'addiction-recovery': '#f97316',
+  'youth-services': '#22c55e',
+  'indigenous-services': '#eab308',
+  'newcomer-refugee': '#06b6d4',
+  'poverty-reduction': '#84cc16',
+  'crisis-services': '#ef4444',
+};
+
+const map = L.map('map', {
+  center: [51.0447, -114.0719],
+  zoom: 11,
+  preferCanvas: true,
+});
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 19,
+}).addTo(map);
+
+const points = {{ points_json | safe }};
+
+points.forEach(p => {
+  const color = CAT_COLORS[p.category_slug] || '#4f7ef8';
+  const marker = L.circleMarker([p.latitude, p.longitude], {
+    radius: 8,
+    fillColor: color,
+    color: '#fff',
+    weight: 1.5,
+    fillOpacity: 0.85,
+  }).addTo(map);
+
+  const badges = [];
+  if (p.cost_model === 'free') badges.push('<span style="background:rgba(34,197,94,0.15);color:#22c55e;padding:1px 6px;border-radius:9999px;font-size:11px;">Free</span>');
+  if (p.access_mode === 'walk_in') badges.push('<span style="background:rgba(56,189,248,0.15);color:#38bdf8;padding:1px 6px;border-radius:9999px;font-size:11px;">Walk-in</span>');
+  if (p.is_24_7) badges.push('<span style="background:rgba(239,68,68,0.15);color:#ef4444;padding:1px 6px;border-radius:9999px;font-size:11px;">24/7</span>');
+
+  marker.bindPopup(`
+    <div class="popup-title">${p.service_name}</div>
+    <div class="popup-org">${p.org_name}${p.address ? ' · ' + p.address : ''}${p.quadrant ? ' · ' + p.quadrant : ''}</div>
+    ${p.category_name ? '<div style="font-size:12px;margin-bottom:4px;">' + p.category_name + '</div>' : ''}
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;">${badges.join('')}</div>
+    <a href="/services/${p.id}" class="popup-link">View details →</a>
+  `);
+});
+</script>
+{% endblock %}

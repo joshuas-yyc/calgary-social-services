@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Review Queue — Calgary Social Services{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <div class="page-title">Review Queue</div>
+    <div class="page-subtitle">{{ items|length }} open items</div>
+  </div>
+  <div class="page-actions">
+    <form method="post" action="/queue/audit">
+      <button type="submit" class="btn btn-warn btn-sm">Run staleness audit</button>
+    </form>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-row" style="margin-bottom:1.5rem;">
+  {% for reason, label, color in [('new','New','var(--info)'),('stale','Stale','var(--warn)'),('conflict','Conflict','var(--danger)'),('flagged','Flagged','var(--warn)')] %}
+  <div class="stat-box">
+    <div class="stat-num" style="color:{{ color }};">{{ counts[reason] }}</div>
+    <div class="stat-label">{{ label }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if items %}
+<div class="card" style="padding:0; overflow:hidden;">
+  {% for item in items %}
+  <div class="queue-item">
+    <div>
+      <span class="badge badge-{{ item.reason }}">{{ item.reason }}</span>
+      <span class="badge" style="background:var(--surface2); border:1px solid var(--border); color:var(--muted);">{{ item.entity_type }}</span>
+    </div>
+    <div class="queue-item-info">
+      <div class="queue-item-name">
+        {% if item.entity_type == 'service' %}
+        <a href="/services/{{ item.entity_id }}" style="color:var(--accent); text-decoration:none;">{{ item.entity_name or 'Service ' + item.entity_id|string }}</a>
+        {% elif item.entity_type == 'org' %}
+        <a href="/orgs/{{ item.entity_id }}" style="color:var(--accent); text-decoration:none;">{{ item.entity_name or 'Org ' + item.entity_id|string }}</a>
+        {% elif item.entity_type == 'location' %}
+        <a href="/locations/{{ item.entity_id }}" style="color:var(--accent); text-decoration:none;">{{ item.entity_name or 'Location ' + item.entity_id|string }}</a>
+        {% else %}
+        {{ item.entity_name or item.entity_type + ' ' + item.entity_id|string }}
+        {% endif %}
+      </div>
+      <div class="queue-item-meta">
+        Priority {{ item.priority }} · Added {{ item.created_at[:10] }}
+        {% if item.note %} · {{ item.note }}{% endif %}
+      </div>
+    </div>
+    <form method="post" action="/queue/resolve/{{ item.id }}">
+      <button type="submit" class="btn btn-success btn-sm">Resolve</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">
+  <div class="empty-icon">✓</div>
+  <div class="empty-text">Queue is clear</div>
+  <div class="empty-sub">Run the staleness audit to check for outdated records.</div>
+</div>
+{% endif %}
+{% endblock %}

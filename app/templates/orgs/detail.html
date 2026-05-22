@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}{{ org.name }} — Calgary Social Services{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <div class="page-title">{{ org.name }}</div>
+    <div class="page-subtitle">
+      {% if org.legal_name %}{{ org.legal_name }} · {% endif %}
+      <span class="badge {% if org.status=='active' %}badge-verified{% else %}badge-conflict{% endif %}">{{ org.status }}</span>
+      {% if org.indigenous_led %}<span class="badge badge-indigenous" style="margin-left:0.25rem;">Indigenous-led</span>{% endif %}
+      {% if parent %} · Under <a href="/orgs/{{ parent.id }}">{{ parent.name }}</a>{% endif %}
+    </div>
+  </div>
+  <div class="page-actions">
+    {% if queue %}<span class="badge badge-flagged">{{ queue|length }} in queue</span>{% endif %}
+    <a href="/orgs/{{ org.id }}/edit" class="btn btn-secondary btn-sm">Edit</a>
+    <form method="post" action="/orgs/{{ org.id }}/flag" style="display:inline;">
+      <button type="submit" class="btn btn-warn btn-sm">Flag for review</button>
+    </form>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <div>
+    {% if org.description %}
+    <div class="detail-section">
+      <h3>About</h3>
+      <p>{{ org.description }}</p>
+    </div>
+    {% endif %}
+
+    {% if org.website %}
+    <div class="detail-section">
+      <h3>Website</h3>
+      <a href="{{ org.website }}" target="_blank" rel="noopener">{{ org.website }}</a>
+    </div>
+    {% endif %}
+
+    {% with owner_type="org", owner_id=org.id %}
+      {% include "partials/contacts.html" %}
+    {% endwith %}
+
+    <!-- Locations -->
+    <div class="detail-section">
+      <h3>Locations ({{ locations|length }})</h3>
+      {% if locations %}
+      {% for loc in locations %}
+      <div class="result-card" style="margin-bottom:0.5rem;">
+        <a href="/locations/{{ loc.id }}" style="text-decoration:none; color:inherit;">
+          <div style="font-weight:600;">{{ loc.label or loc.address or 'Location ' + loc.id|string }}</div>
+          <div style="font-size:12px; color:var(--muted); margin-top:0.25rem;">
+            {% if loc.address %}{{ loc.address }}{% endif %}
+            {% if loc.quadrant %} · {{ loc.quadrant }}{% endif %}
+            {% if loc.community %} · {{ loc.community }}{% endif %}
+            {% if loc.wheelchair_accessible %} · <span class="badge badge-accessible">♿</span>{% endif %}
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+      {% else %}
+      <p style="color:var(--muted); font-size:13px;">No locations yet.</p>
+      {% endif %}
+      <a href="/locations/new?org_id={{ org.id }}" class="btn btn-secondary btn-sm" style="margin-top:0.75rem;">+ Add location</a>
+    </div>
+
+    <!-- Edit log -->
+    <div class="detail-section">
+      <h3>Edit history</h3>
+      {% if edits %}
+      <div class="edit-log">
+        {% for e in edits %}
+        <div class="edit-entry">
+          <div class="edit-meta">
+            <span class="edit-action edit-{{ e.action }}">{{ e.action }}</span>
+            <span> by {{ e.editor }} · {{ e.timestamp[:10] }}</span>
+          </div>
+          {% if e.reason %}<div>{{ e.reason }}</div>{% endif %}
+          {% if e.field_name %}
+          <div style="color:var(--muted);">{{ e.field_name }}: {{ e.old_value or '—' }} → {{ e.new_value or '—' }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p style="color:var(--muted); font-size:13px;">No edits logged.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div>
+    {% if queue %}
+    <div class="card" style="border-color:rgba(245,158,11,0.4); margin-bottom:1rem;">
+      <div style="font-weight:600; color:var(--warn); margin-bottom:0.75rem;">Review queue</div>
+      {% for q in queue %}
+      <div style="font-size:13px; padding:0.375rem 0; border-bottom:1px solid var(--border);">
+        <span class="badge badge-{{ q.reason }}">{{ q.reason }}</span>
+        {% if q.note %}<div style="color:var(--muted);margin-top:0.25rem;">{{ q.note }}</div>{% endif %}
+      </div>
+      {% endfor %}
+      <form method="post" action="/queue/resolve/{{ queue[0].id }}" style="margin-top:0.75rem;">
+        <button type="submit" class="btn btn-success btn-sm">Resolve queue items</button>
+      </form>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div style="font-size:12px; color:var(--muted); margin-bottom:0.5rem;">Created</div>
+      <div style="font-size:13px;">{{ org.created_at[:10] if org.created_at else '—' }}</div>
+      <div style="font-size:12px; color:var(--muted); margin-top:0.75rem; margin-bottom:0.5rem;">Last updated</div>
+      <div style="font-size:13px;">{{ org.updated_at[:10] if org.updated_at else '—' }}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

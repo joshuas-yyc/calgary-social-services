@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block title %}{{ svc.name }} — Calgary Social Services{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <div class="page-title">{{ svc.name }}</div>
+    <div class="page-subtitle">
+      <a href="/orgs/{{ loc.org_id }}">{{ loc.org_name }}</a> ·
+      <a href="/locations/{{ loc.id }}">{{ loc.address or 'Location ' + loc.id|string }}</a>
+      {% if loc.quadrant %} · {{ loc.quadrant }}{% endif %}
+      {% if loc.community %} · {{ loc.community }}{% endif %}
+    </div>
+  </div>
+  <div class="page-actions">
+    {% if queue %}<span class="badge badge-flagged">{{ queue|length }} in queue</span>{% endif %}
+    <a href="/services/{{ svc.id }}/edit" class="btn btn-secondary btn-sm">Edit</a>
+    <form method="post" action="/services/{{ svc.id }}/flag" style="display:inline;">
+      <button type="submit" class="btn btn-warn btn-sm">Flag</button>
+    </form>
+  </div>
+</div>
+
+<!-- Verify banner -->
+{% if not svc.verified_at %}
+<div class="verify-box" style="margin-bottom:1.5rem;">
+  <div style="font-weight:600; color:var(--success); margin-bottom:0.75rem;">This record has not been verified yet</div>
+  <form method="post" action="/services/{{ svc.id }}/verify" style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+    <input type="text" name="editor" value="user" style="width:140px;">
+    <button type="submit" class="btn btn-success">✓ Mark as verified</button>
+  </form>
+</div>
+{% else %}
+<div style="background:rgba(34,197,94,0.05); border:1px solid rgba(34,197,94,0.15); border-radius:8px; padding:0.625rem 1rem; margin-bottom:1.5rem; display:flex; align-items:center; justify-content:space-between;">
+  <span style="font-size:13px; color:var(--success);">✓ Verified by {{ svc.verified_by or 'user' }} on {{ svc.verified_at[:10] }}</span>
+  <form method="post" action="/services/{{ svc.id }}/verify" style="display:inline;">
+    <input type="hidden" name="editor" value="user">
+    <button type="submit" class="btn btn-success btn-sm">Re-verify</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="detail-grid">
+  <div>
+    <!-- Badges strip -->
+    <div class="result-meta" style="margin-bottom:1.5rem;">
+      {% if primary_cat %}
+      <span class="badge badge-category"><span class="cat-dot cat-{{ primary_cat.slug }}"></span>{{ primary_cat.name }}</span>
+      {% endif %}
+      {% if recovery_sub %}
+      <span class="badge badge-category" style="opacity:0.8;">↳ {{ recovery_sub.name }}</span>
+      {% endif %}
+      {% if svc.cost_model == 'free' %}<span class="badge badge-free">Free</span>{% endif %}
+      {% if svc.access_mode == 'walk_in' %}<span class="badge badge-walkin">Walk-in</span>{% endif %}
+      {% if svc.is_24_7 %}<span class="badge badge-24-7">24/7</span>{% endif %}
+      {% if loc.wheelchair_accessible %}<span class="badge badge-accessible">♿</span>{% endif %}
+      <span class="badge {% if svc.status=='active' %}badge-verified{% elif svc.status=='waitlist' %}badge-unverified{% else %}badge-conflict{% endif %}">{{ svc.status }}</span>
+    </div>
+
+    {% if svc.description %}
+    <div class="detail-section">
+      <h3>Description</h3>
+      <p>{{ svc.description }}</p>
+    </div>
+    {% endif %}
+
+    <div class="detail-section">
+      <h3>Details</h3>
+      <table>
+        <tr><td style="color:var(--muted);width:160px;">Cost</td><td>{{ svc.cost_model.replace('_',' ').title() }}</td></tr>
+        <tr><td style="color:var(--muted);">Access</td><td>{{ svc.access_mode.replace('_',' ').title() }}{% if svc.referral_required %} (referral required){% endif %}</td></tr>
+        {% if svc.age_min or svc.age_max %}
+        <tr><td style="color:var(--muted);">Age range</td><td>{{ svc.age_min or '—' }} – {{ svc.age_max or '—' }}</td></tr>
+        {% endif %}
+        {% if svc.gender_restriction and svc.gender_restriction != 'none' %}
+        <tr><td style="color:var(--muted);">Gender</td><td>{{ svc.gender_restriction.title() }} only</td></tr>
+        {% endif %}
+        {% if svc.capacity %}
+        <tr><td style="color:var(--muted);">Capacity</td><td>{{ svc.capacity }} spots</td></tr>
+        {% endif %}
+      </table>
+    </div>
+
+    {% if populations %}
+    <div class="detail-section">
+      <h3>Populations served</h3>
+      <div class="pills">
+        {% for pop in populations %}
+        <span class="pill">{{ pop.name }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if all_cats %}
+    <div class="detail-section">
+      <h3>All categories</h3>
+      <div class="pills">
+        {% for cat in all_cats %}
+        <span class="pill">{{ cat.name }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if hours %}
+    <div class="detail-section">
+      <h3>Hours</h3>
+      {% set days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}
+      <table>
+        {% for h in hours %}
+        <tr>
+          <td style="color:var(--muted);width:60px;">{{ days[h.day_of_week] }}</td>
+          <td>{% if h.is_24_7 %}24/7{% else %}{{ h.opens or '?' }} – {{ h.closes or '?' }}{% endif %}</td>
+          {% if h.note %}<td style="color:var(--muted);">{{ h.note }}</td>{% endif %}
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
+
+    {% with owner_type="service", owner_id=svc.id %}
+      {% include "partials/contacts.html" %}
+    {% endwith %}
+
+    <!-- Provenance -->
+    <div class="detail-section">
+      <h3>Source provenance ({{ provenance|length }} fields)</h3>
+      {% if provenance %}
+      {% for p in provenance %}
+      <div class="prov-row">
+        <span class="prov-field">{{ p.field_name }}</span>
+        <span class="prov-source">
+          {% if p.source_url %}<a href="{{ p.source_url }}" target="_blank">{{ p.source_title }}</a>{% else %}{{ p.source_title }}{% endif %}
+          · {{ p.source_type }}
+        </span>
+        <span class="prov-conf">
+          <span class="badge {% if p.confidence=='high' %}badge-verified{% elif p.confidence=='low' %}badge-conflict{% else %}badge-unverified{% endif %}">{{ p.confidence }}</span>
+        </span>
+      </div>
+      {% endfor %}
+      {% else %}
+      <p style="color:var(--muted); font-size:13px;">No per-field provenance recorded yet.</p>
+      {% endif %}
+    </div>
+
+    <!-- Edit history -->
+    <div class="detail-section">
+      <h3>Edit history</h3>
+      {% if edits %}
+      <div class="edit-log">
+        {% for e in edits %}
+        <div class="edit-entry">
+          <div class="edit-meta">
+            <span class="edit-action edit-{{ e.action }}">{{ e.action }}</span>
+            by {{ e.editor }} · {{ e.timestamp[:10] }}
+          </div>
+          {% if e.reason %}<div>{{ e.reason }}</div>{% endif %}
+          {% if e.field_name %}
+          <div style="color:var(--muted);">{{ e.field_name }}: {{ e.old_value or '—' }} → {{ e.new_value or '—' }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p style="color:var(--muted); font-size:13px;">No edits logged.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div>
+    {% if queue %}
+    <div class="card" style="border-color:rgba(245,158,11,0.4); margin-bottom:1rem;">
+      <div style="font-weight:600; color:var(--warn); margin-bottom:0.75rem;">Review queue</div>
+      {% for qi in queue %}
+      <div style="font-size:13px; padding:0.375rem 0; border-bottom:1px solid var(--border);">
+        <span class="badge badge-{{ qi.reason }}">{{ qi.reason }}</span>
+        {% if qi.note %}<div style="color:var(--muted);margin-top:0.25rem;">{{ qi.note }}</div>{% endif %}
+      </div>
+      {% endfor %}
+      <form method="post" action="/queue/resolve/{{ queue[0].id }}" style="margin-top:0.75rem;">
+        <button type="submit" class="btn btn-success btn-sm">Resolve</button>
+      </form>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div style="font-size:12px; color:var(--muted);">Created</div>
+      <div style="font-size:13px; margin-bottom:0.75rem;">{{ svc.created_at[:10] if svc.created_at else '—' }}</div>
+      <div style="font-size:12px; color:var(--muted);">Last updated</div>
+      <div style="font-size:13px; margin-bottom:0.75rem;">{{ svc.updated_at[:10] if svc.updated_at else '—' }}</div>
+      <div style="font-size:12px; color:var(--muted);">Verified</div>
+      <div style="font-size:13px;">
+        {% if svc.verified_at %}
+        {{ svc.verified_at[:10] }} by {{ svc.verified_by or 'user' }}
+        {% else %}
+        <span style="color:var(--warn);">Not verified</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:1rem;">
+      <div style="font-size:12px; color:var(--muted); margin-bottom:0.5rem;">Location</div>
+      <a href="/locations/{{ loc.id }}" style="color:var(--accent); text-decoration:none; font-size:13px;">
+        {{ loc.address or loc.label or 'View location' }}
+      </a>
+      {% if loc.latitude and loc.longitude %}
+      <div style="margin-top:0.75rem;">
+        <a href="/map" class="btn btn-secondary btn-sm">View on map</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

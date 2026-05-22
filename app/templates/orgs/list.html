@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Organizations — Calgary Social Services{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Organizations</div>
+    <div class="page-subtitle">{{ orgs|length }} total</div>
+  </div>
+  <div class="page-actions">
+    <a href="/orgs/new" class="btn btn-primary">+ New org</a>
+  </div>
+</div>
+
+{% if orgs %}
+<div class="card" style="padding:0; overflow:hidden;">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Status</th>
+        <th>Indigenous-led</th>
+        <th>Locations</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for org in orgs %}
+      <tr>
+        <td>
+          <a href="/orgs/{{ org.id }}" style="color:var(--accent); text-decoration:none;">{{ org.name }}</a>
+          {% if org.legal_name %}<div style="font-size:11px;color:var(--muted);">{{ org.legal_name }}</div>{% endif %}
+        </td>
+        <td>
+          <span class="badge {% if org.status=='active' %}badge-verified{% elif org.status=='closed' %}badge-conflict{% else %}badge-unverified{% endif %}">{{ org.status }}</span>
+        </td>
+        <td>{% if org.indigenous_led %}✓{% endif %}</td>
+        <td>{{ org.location_count }}</td>
+        <td>
+          <a href="/orgs/{{ org.id }}/edit" class="btn btn-secondary btn-sm">Edit</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty">
+  <div class="empty-icon">🏢</div>
+  <div class="empty-text">No organizations yet</div>
+  <div class="empty-sub"><a href="/orgs/new" class="btn btn-primary btn-sm" style="display:inline-flex;margin-top:0.5rem;">Add the first one</a></div>
+</div>
+{% endif %}
+{% endblock %}

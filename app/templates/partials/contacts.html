@@ -1,0 +1,67 @@
+{# Params: contacts, owner_type, owner_id #}
+<div class="detail-section">
+  <h3>Contacts</h3>
+
+  {% if contacts %}
+  <div style="margin-bottom:0.75rem;">
+    {% for c in contacts %}
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:0.375rem 0; border-bottom:1px solid var(--border); font-size:13px;">
+      <span>
+        <span style="color:var(--muted);text-transform:uppercase;font-size:11px;min-width:80px;display:inline-block;">{{ c.kind }}</span>
+        {% if c.kind in ('web','facebook','instagram','twitter','linkedin','youtube','tiktok') %}
+          <a href="{{ c.value }}" target="_blank" rel="noopener" style="color:var(--accent);">{{ c.value }}</a>
+        {% else %}
+          {{ c.value }}
+        {% endif %}
+        {% if c.is_primary %}<span class="badge badge-verified" style="margin-left:0.375rem;">primary</span>{% endif %}
+      </span>
+      <form method="post" action="/contacts/{{ c.id }}/delete" style="margin:0;">
+        <button type="submit" class="btn btn-warn btn-sm" style="padding:0.125rem 0.5rem; font-size:11px;">✕</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p style="color:var(--muted); font-size:13px; margin-bottom:0.75rem;">No contacts yet.</p>
+  {% endif %}
+
+  <details style="margin-top:0.5rem;">
+    <summary style="font-size:13px; cursor:pointer; color:var(--accent); user-select:none;">+ Add contact</summary>
+    <form method="post" action="/contacts/" style="margin-top:0.75rem; display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-end;">
+      <input type="hidden" name="owner_type" value="{{ owner_type }}">
+      <input type="hidden" name="owner_id" value="{{ owner_id }}">
+      <div>
+        <label style="font-size:11px; color:var(--muted); display:block; margin-bottom:0.25rem;">Kind</label>
+        <select name="kind" style="font-size:13px;">
+          <optgroup label="Phone / Email">
+            <option value="phone">Phone</option>
+            <option value="email">Email</option>
+            <option value="intake_line">Intake line</option>
+            <option value="crisis_line">Crisis line</option>
+          </optgroup>
+          <optgroup label="Web">
+            <option value="web">Website</option>
+            <option value="facebook">Facebook</option>
+            <option value="instagram">Instagram</option>
+            <option value="twitter">Twitter / X</option>
+            <option value="linkedin">LinkedIn</option>
+            <option value="youtube">YouTube</option>
+            <option value="tiktok">TikTok</option>
+          </optgroup>
+        </select>
+      </div>
+      <div style="flex:1; min-width:200px;">
+        <label style="font-size:11px; color:var(--muted); display:block; margin-bottom:0.25rem;">Value</label>
+        <input type="text" name="value" placeholder="403-555-0100 or https://..." required style="width:100%; font-size:13px;">
+      </div>
+      <div>
+        <label style="font-size:11px; color:var(--muted); display:block; margin-bottom:0.25rem;">Primary?</label>
+        <select name="is_primary" style="font-size:13px;">
+          <option value="0">No</option>
+          <option value="1">Yes</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Add</button>
+    </form>
+  </details>
+</div>

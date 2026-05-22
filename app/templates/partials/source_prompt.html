@@ -1,0 +1,66 @@
+<!-- Source prompt — include in every create/edit form -->
+<div class="source-box">
+  <h4>Source required — every save needs provenance</h4>
+
+  <div class="source-tabs">
+    <button type="button" class="source-tab active" onclick="switchTab('existing')">Use existing source</button>
+    <button type="button" class="source-tab" onclick="switchTab('new')">Add new source</button>
+  </div>
+
+  <div class="source-panel active" id="panel-existing">
+    <div class="form-group">
+      <label>Select source</label>
+      <select name="source_id">
+        <option value="">— select —</option>
+        {% for src in sources %}
+        <option value="{{ src.id }}">{{ src.title }} ({{ src.source_type }})</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="source-panel" id="panel-new">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Source title *</label>
+        <input type="text" name="source_title" placeholder="e.g. Calgary Drop-In Centre website">
+      </div>
+      <div class="form-group">
+        <label>URL (optional)</label>
+        <input type="url" name="source_url" placeholder="https://…">
+      </div>
+      <div class="form-group">
+        <label>Source type</label>
+        <select name="source_type">
+          <option value="website">Website</option>
+          <option value="pdf">PDF</option>
+          <option value="phone_call">Phone call</option>
+          <option value="in_person">In person</option>
+          <option value="govt_registry">Govt registry</option>
+          <option value="211">211 Alberta</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-group" style="margin-top:1rem;">
+    <label>Reason / notes *</label>
+    <input type="text" name="reason" placeholder="e.g. verified against org website May 2026" required>
+  </div>
+
+  <div class="form-group" style="margin-top:0.75rem;">
+    <label>Editor</label>
+    <input type="text" name="editor" value="user">
+  </div>
+</div>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.source-tab').forEach((t, i) => {
+    const tabs = ['existing','new'];
+    t.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.source-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+</script>

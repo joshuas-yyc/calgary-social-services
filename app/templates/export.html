@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Export — Calgary Social Services{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <div class="page-title">Export</div>
+    <div class="page-subtitle">Verified, active records only</div>
+  </div>
+</div>
+
+<div class="card" style="max-width:600px;">
+  <div style="font-size:14px; margin-bottom:1.5rem;">
+    <strong style="color:var(--success);">{{ verified_count }}</strong> verified active services ready for export.
+    Unverified or closed records are excluded from all exports.
+  </div>
+
+  <div style="display:flex; flex-direction:column; gap:0.75rem;">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:1rem; background:var(--surface2); border-radius:8px; border:1px solid var(--border);">
+      <div>
+        <div style="font-weight:600;">JSON</div>
+        <div style="font-size:12px; color:var(--muted);">Full records with contacts and populations</div>
+      </div>
+      <a href="/export/json" class="btn btn-primary btn-sm">Download</a>
+    </div>
+
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:1rem; background:var(--surface2); border-radius:8px; border:1px solid var(--border);">
+      <div>
+        <div style="font-weight:600;">GeoJSON</div>
+        <div style="font-size:12px; color:var(--muted);">Geocoded records only (services with lat/lon)</div>
+      </div>
+      <a href="/export/geojson" class="btn btn-primary btn-sm">Download</a>
+    </div>
+
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:1rem; background:var(--surface2); border-radius:8px; border:1px solid var(--border);">
+      <div>
+        <div style="font-weight:600;">CSV</div>
+        <div style="font-size:12px; color:var(--muted);">Flat table for spreadsheets</div>
+      </div>
+      <a href="/export/csv" class="btn btn-primary btn-sm">Download</a>
+    </div>
+  </div>
+
+  <div style="margin-top:1.5rem; padding:1rem; background:rgba(245,158,11,0.05); border:1px solid rgba(245,158,11,0.2); border-radius:8px; font-size:12px; color:var(--muted);">
+    Export is one-directional. This dashboard remains the source of truth. Exported files are a snapshot — re-export after verification passes to keep downstream consumers current.
+  </div>
+</div>
+{% endblock %}

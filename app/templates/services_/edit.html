@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}{% if service %}Edit {{ service.name }}{% else %}New Service{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">{% if service %}Edit Service{% else %}New Service{% endif %}</div>
+    {% if service %}<div class="page-subtitle"><a href="/services/{{ service.id }}">← Back to {{ service.name }}</a></div>{% endif %}
+  </div>
+</div>
+
+<form method="post" action="{% if service %}/services/{{ service.id }}/edit{% else %}/services/{% endif %}">
+  <div class="card">
+    <div class="form-grid">
+      <div class="form-group form-full">
+        <label>Location *</label>
+        <select name="location_id" required>
+          <option value="">— select location —</option>
+          {% for loc in locations %}
+          <option value="{{ loc.id }}"
+            {% if service and service.location_id == loc.id %}selected
+            {% elif selected_loc and selected_loc.id == loc.id %}selected
+            {% endif %}>{{ loc.org_name }} — {{ loc.label or loc.address or 'Location ' + loc.id|string }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group form-full">
+        <label>Service / program name *</label>
+        <input type="text" name="name" value="{{ service.name if service else '' }}" required placeholder="Emergency Shelter, Detox Intake, Food Bank…">
+      </div>
+
+      <div class="form-group form-full">
+        <label>Description</label>
+        <textarea name="description">{{ service.description if service and service.description else '' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Primary category</label>
+        <select name="primary_category_id">
+          <option value="">— none —</option>
+          {% for cat in categories %}
+          <option value="{{ cat.id }}" {% if service and service.primary_category_id == cat.id %}selected{% endif %}>
+            {{ '  └ ' if cat.parent_id else '' }}{{ cat.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Recovery subtype (if applicable)</label>
+        <select name="recovery_subtype_id">
+          <option value="">— none —</option>
+          {% for cat in categories %}
+            {% if cat.parent_id %}
+            <option value="{{ cat.id }}" {% if service and service.recovery_subtype_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Cost model</label>
+        <select name="cost_model">
+          {% for cm in ['unknown','free','sliding_scale','fee'] %}
+          <option value="{{ cm }}" {% if service and service.cost_model == cm %}selected{% elif not service and cm=='unknown' %}selected{% endif %}>{{ cm.replace('_',' ').title() }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Access mode</label>
+        <select name="access_mode">
+          {% for am in ['walk_in','referral','appointment','mixed'] %}
+          <option value="{{ am }}" {% if service and service.access_mode == am %}selected{% elif not service and am=='walk_in' %}selected{% endif %}>{{ am.replace('_',' ').title() }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Gender restriction</label>
+        <select name="gender_restriction">
+          {% for gr in ['none','women','men','other'] %}
+          <option value="{{ gr }}" {% if service and service.gender_restriction == gr %}selected{% elif not service and gr=='none' %}selected{% endif %}>{{ gr.title() }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Status</label>
+        <select name="status">
+          {% for st in ['active','waitlist','closed'] %}
+          <option value="{{ st }}" {% if service and service.status == st %}selected{% elif not service and st=='active' %}selected{% endif %}>{{ st.title() }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Age min</label>
+        <input type="number" name="age_min" value="{{ service.age_min if service and service.age_min else '' }}" placeholder="e.g. 18">
+      </div>
+
+      <div class="form-group">
+        <label>Age max</label>
+        <input type="number" name="age_max" value="{{ service.age_max if service and service.age_max else '' }}" placeholder="e.g. 65">
+      </div>
+
+      <div class="form-group">
+        <label>Capacity (beds / spots)</label>
+        <input type="number" name="capacity" value="{{ service.capacity if service and service.capacity else '' }}" placeholder="optional">
+      </div>
+
+      <div class="form-group" style="align-self:end;">
+        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+          <label class="inline-check">
+            <input type="checkbox" name="referral_required" value="1" {% if service and service.referral_required %}checked{% endif %}>
+            Referral required
+          </label>
+          <label class="inline-check">
+            <input type="checkbox" name="is_24_7" value="1" {% if service and service.is_24_7 %}checked{% endif %}>
+            24 / 7 service
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cross-cutting categories -->
+    <div class="divider"></div>
+    <div class="form-group">
+      <label>Additional categories (cross-cutting)</label>
+      <div class="check-grid">
+        {% for cat in categories %}
+        <label class="check-item">
+          <input type="checkbox" name="category_ids" value="{{ cat.id }}" {% if cat.id in service_cats %}checked{% endif %}>
+          <span>{{ '└ ' if cat.parent_id else '' }}{{ cat.name }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Populations -->
+    <div class="divider"></div>
+    <div class="form-group">
+      <label>Populations served</label>
+      <div class="check-grid">
+        {% for pop in populations %}
+        <label class="check-item">
+          <input type="checkbox" name="population_ids" value="{{ pop.id }}" {% if pop.id in service_pops %}checked{% endif %}>
+          <span>{{ pop.name }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {% include "partials/source_prompt.html" %}
+
+  <div style="display:flex; gap:0.75rem; margin-top:1.5rem;">
+    <button type="submit" class="btn btn-primary">Save service</button>
+    {% if service %}
+    <a href="/services/{{ service.id }}" class="btn btn-secondary">Cancel</a>
+    {% else %}
+    <a href="/" class="btn btn-secondary">Cancel</a>
+    {% endif %}
+  </div>
+</form>
+{% endblock %}

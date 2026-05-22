@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{% if org %}Edit {{ org.name }}{% else %}New Organization{% endif %} — Calgary Social Services{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">{% if org %}Edit Organization{% else %}New Organization{% endif %}</div>
+    {% if org %}<div class="page-subtitle"><a href="/orgs/{{ org.id }}">← Back to {{ org.name }}</a></div>{% endif %}
+  </div>
+</div>
+
+<form method="post" action="{% if org %}/orgs/{{ org.id }}/edit{% else %}/orgs/{% endif %}">
+  <div class="card">
+    <div class="form-grid">
+      <div class="form-group form-full">
+        <label>Organization name *</label>
+        <input type="text" name="name" value="{{ org.name if org else '' }}" required placeholder="Calgary Drop-In Centre">
+      </div>
+      <div class="form-group">
+        <label>Legal name (optional)</label>
+        <input type="text" name="legal_name" value="{{ org.legal_name if org and org.legal_name else '' }}" placeholder="DI Centre Society">
+      </div>
+      <div class="form-group">
+        <label>Website</label>
+        <input type="url" name="website" value="{{ org.website if org and org.website else '' }}" placeholder="https://…">
+      </div>
+      <div class="form-group">
+        <label>Parent organization (umbrella)</label>
+        <select name="parent_org_id">
+          <option value="">None</option>
+          {% for ao in all_orgs %}
+            {% if not org or ao.id != org.id %}
+            <option value="{{ ao.id }}" {% if org and org.parent_org_id == ao.id %}selected{% endif %}>{{ ao.name }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select name="status">
+          <option value="active" {% if not org or org.status=='active' %}selected{% endif %}>Active</option>
+          <option value="closed" {% if org and org.status=='closed' %}selected{% endif %}>Closed</option>
+          <option value="merged" {% if org and org.status=='merged' %}selected{% endif %}>Merged</option>
+        </select>
+      </div>
+      <div class="form-group form-full">
+        <label>Description</label>
+        <textarea name="description">{{ org.description if org and org.description else '' }}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="inline-check">
+          <input type="checkbox" name="indigenous_led" value="1" {% if org and org.indigenous_led %}checked{% endif %}>
+          Indigenous-led organization
+        </label>
+        <div class="hint">Distinct from the Indigenous Services category — use this for filtering by leadership.</div>
+      </div>
+    </div>
+  </div>
+
+  {% include "partials/source_prompt.html" %}
+
+  <div style="display:flex; gap:0.75rem; margin-top:1.5rem;">
+    <button type="submit" class="btn btn-primary">Save organization</button>
+    {% if org %}
+    <a href="/orgs/{{ org.id }}" class="btn btn-secondary">Cancel</a>
+    {% else %}
+    <a href="/orgs/" class="btn btn-secondary">Cancel</a>
+    {% endif %}
+  </div>
+</form>
+{% endblock %}

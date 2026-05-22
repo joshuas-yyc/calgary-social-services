@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Search — Calgary Social Services{% endblock %}
+{% block content %}
+
+<div class="search-layout">
+  <!-- Filters sidebar -->
+  <aside class="filters">
+    <form method="get" action="/" id="search-form">
+      <div class="filter-group">
+        <label>Search</label>
+        <input type="text" name="q" value="{{ q }}" placeholder="e.g. detox, shelter, food bank…" autofocus>
+      </div>
+
+      <div class="filter-group">
+        <label>Category</label>
+        <select name="category_id" onchange="this.form.submit()">
+          <option value="">All categories</option>
+          {% for cat in categories %}
+            {% if not cat.parent_id %}
+            <option value="{{ cat.id }}" {% if category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Recovery subtype</label>
+        <select name="recovery_subtype_id" onchange="this.form.submit()">
+          <option value="">Any</option>
+          {% for cat in categories %}
+            {% if cat.parent_id %}
+            <option value="{{ cat.id }}" {% if recovery_subtype_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Population</label>
+        <select name="population_id" onchange="this.form.submit()">
+          <option value="">All populations</option>
+          {% for pop in populations %}
+          <option value="{{ pop.id }}" {% if population_id == pop.id %}selected{% endif %}>{{ pop.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Quadrant</label>
+        <select name="quadrant" onchange="this.form.submit()">
+          <option value="">All quadrants</option>
+          {% for q_ in ['NW','NE','SW','SE'] %}
+          <option value="{{ q_ }}" {% if quadrant == q_ %}selected{% endif %}>{{ q_ }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Cost</label>
+        <select name="cost_model" onchange="this.form.submit()">
+          <option value="">Any</option>
+          <option value="free" {% if cost_model == 'free' %}selected{% endif %}>Free</option>
+          <option value="sliding_scale" {% if cost_model == 'sliding_scale' %}selected{% endif %}>Sliding scale</option>
+          <option value="fee" {% if cost_model == 'fee' %}selected{% endif %}>Fee</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Access</label>
+        <select name="access_mode" onchange="this.form.submit()">
+          <option value="">Any</option>
+          <option value="walk_in" {% if access_mode == 'walk_in' %}selected{% endif %}>Walk-in</option>
+          <option value="referral" {% if access_mode == 'referral' %}selected{% endif %}>Referral</option>
+          <option value="appointment" {% if access_mode == 'appointment' %}selected{% endif %}>Appointment</option>
+          <option value="mixed" {% if access_mode == 'mixed' %}selected{% endif %}>Mixed</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Status</label>
+        <select name="status" onchange="this.form.submit()">
+          <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+          <option value="waitlist" {% if status == 'waitlist' %}selected{% endif %}>Waitlist</option>
+          <option value="" {% if not status %}selected{% endif %}>All</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+          <label class="check-item" style="cursor:pointer;">
+            <input type="checkbox" name="is_24_7" value="true" {% if is_24_7 %}checked{% endif %} onchange="this.form.submit()">
+            <span>24 / 7</span>
+          </label>
+          <label class="check-item" style="cursor:pointer;">
+            <input type="checkbox" name="wheelchair_accessible" value="true" {% if wheelchair_accessible %}checked{% endif %} onchange="this.form.submit()">
+            <span>Wheelchair accessible</span>
+          </label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;">Search</button>
+      {% if filters_active %}
+      <a href="/" class="btn btn-secondary" style="width:100%; margin-top:0.5rem; text-align:center;">Clear filters</a>
+      {% endif %}
+    </form>
+
+    <div class="divider"></div>
+    <div style="display:flex; flex-direction:column; gap:0.5rem;">
+      <a href="/orgs/new" class="btn btn-secondary btn-sm">+ New org</a>
+      <a href="/locations/new" class="btn btn-secondary btn-sm">+ New location</a>
+      <a href="/services/new" class="btn btn-secondary btn-sm">+ New service</a>
+    </div>
+  </aside>
+
+  <!-- Results -->
+  <div class="results-panel">
+    <div class="page-header" style="margin-bottom:1rem;">
+      <div>
+        <div class="page-title">
+          {% if q %}Results for "{{ q }}"{% else %}All services{% endif %}
+        </div>
+        <div class="page-subtitle">{{ count }} result{% if count != 1 %}s{% endif %}</div>
+      </div>
+      <a href="/map{% if q %}?q={{ q }}{% endif %}" class="btn btn-secondary btn-sm">View on map</a>
+    </div>
+
+    {% if results %}
+      {% for item in results %}
+      {% set r = item.row %}
+      <div class="result-card">
+        <a href="/services/{{ r.id }}">
+          <div class="result-title">{{ r.service_name }}</div>
+          <div class="result-org">
+            {{ r.org_name }}
+            {% if r.address %} · {{ r.address }}{% endif %}
+            {% if r.quadrant %} · {{ r.quadrant }}{% endif %}
+            {% if r.community %} · {{ r.community }}{% endif %}
+          </div>
+          <div class="result-meta">
+            {% if r.category_name %}
+            <span class="badge badge-category">
+              <span class="cat-dot cat-{{ r.category_slug }}"></span>{{ r.category_name }}
+            </span>
+            {% endif %}
+            {% if r.cost_model == 'free' %}<span class="badge badge-free">Free</span>{% endif %}
+            {% if r.access_mode == 'walk_in' %}<span class="badge badge-walkin">Walk-in</span>{% endif %}
+            {% if r.is_24_7 %}<span class="badge badge-24-7">24/7</span>{% endif %}
+            {% if r.wheelchair_accessible %}<span class="badge badge-accessible">♿</span>{% endif %}
+            {% if r.indigenous_led %}<span class="badge badge-indigenous">Indigenous-led</span>{% endif %}
+            {% for pop in item.populations %}
+            <span class="pill">{{ pop }}</span>
+            {% endfor %}
+            {% if r.verified_at %}
+            <span class="badge badge-verified" style="margin-left:auto;">✓ Verified</span>
+            {% else %}
+            <span class="badge badge-unverified" style="margin-left:auto;">Unverified</span>
+            {% endif %}
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="empty">
+      <div class="empty-icon">🔍</div>
+      <div class="empty-text">No services found</div>
+      <div class="empty-sub">Try different filters or <a href="/services/new" class="btn btn-primary btn-sm" style="display:inline-flex;margin-left:0.5rem;">add one</a></div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

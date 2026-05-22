@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Review Staging Item — Calgary Social Services{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <div class="page-title">Review Staging Item #{{ item.id }}</div>
+    <div class="page-subtitle"><a href="/staging/">← Back to staging</a></div>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <!-- Raw data panel -->
+  <div>
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div style="font-weight:600; margin-bottom:1rem; font-size:13px; text-transform:uppercase; letter-spacing:0.04em; color:var(--muted);">Raw import data</div>
+      <table>
+        {% for key, val in raw.items() %}
+        <tr>
+          <td style="color:var(--muted); width:180px; font-family:monospace; font-size:12px;">{{ key }}</td>
+          <td style="font-size:13px;">{{ val }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    <div style="display:flex; gap:0.75rem;">
+      <form method="post" action="/staging/{{ item.id }}/reject">
+        <input type="hidden" name="note" value="Manually rejected">
+        <button type="submit" class="btn btn-danger">Reject this record</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Accept form -->
+  <div>
+    <div class="card">
+      <div style="font-weight:600; margin-bottom:1rem; color:var(--success);">Accept &amp; create service</div>
+      <form method="post" action="/staging/{{ item.id }}/accept">
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label>Service name *</label>
+          <input type="text" name="service_name" value="{{ raw.get('name', raw.get('service_name', raw.get('program_name', ''))) }}" required>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label>Description</label>
+          <textarea name="description">{{ raw.get('description', raw.get('desc', '')) }}</textarea>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label>Organization</label>
+          <select name="org_action" id="org_action" onchange="toggleOrgNew()">
+            <option value="existing">Use existing org</option>
+            <option value="new">Create new org</option>
+          </select>
+        </div>
+
+        <div id="org-existing" style="margin-bottom:1rem;">
+          <select name="organization_id">
+            <option value="">— select —</option>
+            {% for org in orgs %}
+            <option value="{{ org.id }}">{{ org.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div id="org-new" style="display:none; margin-bottom:1rem;">
+          <input type="text" name="org_name" value="{{ raw.get('organization', raw.get('org_name', '')) }}" placeholder="Organization name">
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label>Location</label>
+          <select name="location_action" id="loc_action" onchange="toggleLocNew()">
+            <option value="existing">Use existing location</option>
+            <option value="new">Create new location</option>
+          </select>
+        </div>
+
+        <div id="loc-existing" style="margin-bottom:1rem;">
+          <select name="location_id">
+            <option value="">— select —</option>
+            {% for loc in locations %}
+            <option value="{{ loc.id }}">{{ loc.org_name }} — {{ loc.label or loc.address or 'Location ' + loc.id|string }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div id="loc-new" style="display:none; margin-bottom:1rem;">
+          <div class="form-group" style="margin-bottom:0.75rem;">
+            <label>Address</label>
+            <input type="text" name="loc_address" value="{{ raw.get('address', raw.get('street_address', '')) }}">
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+            <div class="form-group">
+              <label>Quadrant</label>
+              <select name="loc_quadrant">
+                <option value="">Unknown</option>
+                {% for q in ['NW','NE','SW','SE'] %}
+                <option value="{{ q }}">{{ q }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Community</label>
+              <input type="text" name="loc_community" value="{{ raw.get('community', raw.get('neighbourhood', '')) }}">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label>Primary category</label>
+          <select name="primary_category_id">
+            <option value="">— none —</option>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}">{{ '  └ ' if cat.parent_id else '' }}{{ cat.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
+          <div class="form-group">
+            <label>Cost</label>
+            <select name="cost_model">
+              <option value="unknown">Unknown</option>
+              <option value="free">Free</option>
+              <option value="sliding_scale">Sliding scale</option>
+              <option value="fee">Fee</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Access</label>
+            <select name="access_mode">
+              <option value="walk_in">Walk-in</option>
+              <option value="referral">Referral</option>
+              <option value="appointment">Appointment</option>
+              <option value="mixed">Mixed</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label>Reason</label>
+          <input type="text" name="reason" value="Accepted from staging import">
+        </div>
+
+        <button type="submit" class="btn btn-success" style="width:100%;">Accept &amp; create service</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleOrgNew() {
+  const val = document.getElementById('org_action').value;
+  document.getElementById('org-existing').style.display = val === 'existing' ? '' : 'none';
+  document.getElementById('org-new').style.display = val === 'new' ? '' : 'none';
+}
+function toggleLocNew() {
+  const val = document.getElementById('loc_action').value;
+  document.getElementById('loc-existing').style.display = val === 'existing' ? '' : 'none';
+  document.getElementById('loc-new').style.display = val === 'new' ? '' : 'none';
+}
+</script>
+{% endblock %}

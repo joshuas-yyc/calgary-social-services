@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}{{ location.label or location.address or 'Location' }} — Calgary Social Services{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <div class="page-title">{{ location.label or location.address or 'Location' }}</div>
+    <div class="page-subtitle">
+      <a href="/orgs/{{ org.id }}">{{ org.name }}</a>
+      {% if location.quadrant %} · {{ location.quadrant }}{% endif %}
+      {% if location.community %} · {{ location.community }}{% endif %}
+      <span class="badge {% if location.status=='active' %}badge-verified{% else %}badge-conflict{% endif %}" style="margin-left:0.25rem;">{{ location.status }}</span>
+    </div>
+  </div>
+  <div class="page-actions">
+    <a href="/locations/{{ location.id }}/edit" class="btn btn-secondary btn-sm">Edit</a>
+    <a href="/services/new?location_id={{ location.id }}" class="btn btn-primary btn-sm">+ Service</a>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <div>
+    {% if location.address %}
+    <div class="detail-section">
+      <h3>Address</h3>
+      <p>{{ location.address }}</p>
+      {% if location.latitude and location.longitude %}
+      <p style="font-size:12px; color:var(--muted); margin-top:0.25rem;">{{ location.latitude }}, {{ location.longitude }}</p>
+      {% endif %}
+      {% if location.transit_note %}<p style="color:var(--muted); font-size:13px; margin-top:0.25rem;">{{ location.transit_note }}</p>{% endif %}
+    </div>
+    {% endif %}
+
+    {% with owner_type="location", owner_id=location.id %}
+      {% include "partials/contacts.html" %}
+    {% endwith %}
+
+    <div class="detail-section">
+      <h3>Services at this location ({{ services|length }})</h3>
+      {% if services %}
+        {% for svc in services %}
+        <div class="result-card" style="margin-bottom:0.5rem;">
+          <a href="/services/{{ svc.id }}" style="text-decoration:none; color:inherit;">
+            <div style="font-weight:600;">{{ svc.name }}</div>
+            <div style="font-size:12px; color:var(--muted); margin-top:0.25rem;">
+              {% if svc.category_name %}<span class="badge badge-category">{{ svc.category_name }}</span>{% endif %}
+              <span class="badge {% if svc.status=='active' %}badge-verified{% else %}badge-conflict{% endif %}">{{ svc.status }}</span>
+            </div>
+          </a>
+        </div>
+        {% endfor %}
+      {% else %}
+      <p style="color:var(--muted); font-size:13px;">No services yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="detail-section">
+      <h3>Edit history</h3>
+      {% if edits %}
+      <div class="edit-log">
+        {% for e in edits %}
+        <div class="edit-entry">
+          <div class="edit-meta">
+            <span class="edit-action edit-{{ e.action }}">{{ e.action }}</span> by {{ e.editor }} · {{ e.timestamp[:10] }}
+          </div>
+          {% if e.reason %}<div>{{ e.reason }}</div>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p style="color:var(--muted); font-size:13px;">No edits logged.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      {% if location.wheelchair_accessible %}
+      <div style="margin-bottom:0.75rem;"><span class="badge badge-accessible">♿ Wheelchair accessible</span></div>
+      {% endif %}
+      <div style="font-size:12px; color:var(--muted);">Created</div>
+      <div style="font-size:13px; margin-bottom:0.75rem;">{{ location.created_at[:10] if location.created_at else '—' }}</div>
+      <div style="font-size:12px; color:var(--muted);">Last updated</div>
+      <div style="font-size:13px;">{{ location.updated_at[:10] if location.updated_at else '—' }}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

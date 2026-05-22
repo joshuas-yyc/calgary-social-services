@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Calgary Social Services{% endblock %}</title>
+  <script src="https://unpkg.com/htmx.org@1.9.10" defer></script>
+  <link rel="stylesheet" href="/static/css/style.css">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <nav class="nav">
+    <a href="/" class="nav-brand">Calgary Social Services</a>
+    <div class="nav-links">
+      <a href="/">Search</a>
+      <a href="/map">Map</a>
+      <a href="/orgs/">Orgs</a>
+      <a href="/queue/">Queue</a>
+      <a href="/staging/">Staging</a>
+      <a href="/export/">Export</a>
+    </div>
+  </nav>
+  {% if request.query_params.get('audit_flagged') %}
+  <div class="flash flash-info">Staleness audit complete — {{ request.query_params.get('audit_flagged') }} records flagged for review.</div>
+  {% endif %}
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

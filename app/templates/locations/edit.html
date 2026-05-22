@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{% if location %}Edit Location{% else %}New Location{% endif %} — Calgary Social Services{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">{% if location %}Edit Location{% else %}New Location{% endif %}</div>
+    {% if location %}<div class="page-subtitle"><a href="/locations/{{ location.id }}">← Back to location</a></div>{% endif %}
+  </div>
+</div>
+
+<form method="post" action="{% if location %}/locations/{{ location.id }}/edit{% else %}/locations/{% endif %}">
+  <div class="card">
+    <div class="form-grid">
+      <div class="form-group form-full">
+        <label>Organization *</label>
+        <select name="organization_id" required>
+          <option value="">— select org —</option>
+          {% for org in orgs %}
+          <option value="{{ org.id }}"
+            {% if location and location.organization_id == org.id %}selected
+            {% elif selected_org and selected_org.id == org.id %}selected
+            {% endif %}>{{ org.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Site label</label>
+        <input type="text" name="label" value="{{ location.label if location and location.label else '' }}" placeholder="Main site, Intake office…">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select name="status">
+          <option value="active" {% if not location or location.status=='active' %}selected{% endif %}>Active</option>
+          <option value="closed" {% if location and location.status=='closed' %}selected{% endif %}>Closed</option>
+        </select>
+      </div>
+      <div class="form-group form-full">
+        <label>Street address</label>
+        <input type="text" name="address" value="{{ location.address if location and location.address else '' }}" placeholder="123 Main St SE, Calgary, AB">
+      </div>
+      <div class="form-group">
+        <label>Quadrant</label>
+        <select name="quadrant">
+          <option value="">Unknown</option>
+          {% for q in ['NW','NE','SW','SE'] %}
+          <option value="{{ q }}" {% if location and location.quadrant == q %}selected{% endif %}>{{ q }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Community / neighbourhood</label>
+        <input type="text" name="community" value="{{ location.community if location and location.community else '' }}" placeholder="Beltline, Forest Lawn…">
+      </div>
+      <div class="form-group">
+        <label>Latitude</label>
+        <input type="number" name="latitude" step="0.000001" value="{{ location.latitude if location and location.latitude else '' }}" placeholder="51.044">
+      </div>
+      <div class="form-group">
+        <label>Longitude</label>
+        <input type="number" name="longitude" step="0.000001" value="{{ location.longitude if location and location.longitude else '' }}" placeholder="-114.072">
+      </div>
+      <div class="form-group">
+        <label>Transit note</label>
+        <input type="text" name="transit_note" value="{{ location.transit_note if location and location.transit_note else '' }}" placeholder="1 block from City Hall CTrain">
+      </div>
+      <div class="form-group">
+        <label class="inline-check">
+          <input type="checkbox" name="wheelchair_accessible" value="1" {% if location and location.wheelchair_accessible %}checked{% endif %}>
+          Wheelchair accessible
+        </label>
+      </div>
+    </div>
+  </div>
+
+  {% include "partials/source_prompt.html" %}
+
+  <div style="display:flex; gap:0.75rem; margin-top:1.5rem;">
+    <button type="submit" class="btn btn-primary">Save location</button>
+    {% if location %}
+    <a href="/locations/{{ location.id }}" class="btn btn-secondary">Cancel</a>
+    {% else %}
+    <a href="/" class="btn btn-secondary">Cancel</a>
+    {% endif %}
+  </div>
+</form>
+{% endblock %}
