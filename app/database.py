@@ -1,8 +1,10 @@
+import os
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent.parent / "data" / "calgary.sqlite"
+_data_dir = os.environ.get("CALGARY_DATA_DIR")
+DB_PATH = Path(_data_dir) / "calgary.sqlite" if _data_dir else Path(__file__).parent.parent / "data" / "calgary.sqlite"
 
 
 def get_connection() -> sqlite3.Connection:
