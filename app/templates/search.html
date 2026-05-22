@@ -1,15 +1,74 @@
 {% extends "base.html" %}
 {% block title %}Search — Calgary Social Services{% endblock %}
+{% block head %}
+<script>
+document.addEventListener('keydown', function(e) {
+  if (e.key === '/' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    document.getElementById('main-search').focus();
+  }
+});
+</script>
+{% endblock %}
 {% block content %}
+
+<!-- Hidden form for quick-filter pill toggles (preserves all active filters) -->
+<form id="quick-form" method="get" action="/" style="display:none">
+  <input type="hidden" name="q" value="{{ q }}">
+  <input type="hidden" name="status" value="{{ status or 'active' }}">
+  <input type="hidden" id="qf-cat" name="category_id" value="{{ category_id or '' }}">
+  <input type="hidden" id="qf-pop" name="population_id" value="{{ population_id or '' }}">
+  <input type="hidden" id="qf-quad" name="quadrant" value="{{ quadrant or '' }}">
+  <input type="hidden" id="qf-cost" name="cost_model" value="{{ cost_model or '' }}">
+  <input type="hidden" id="qf-access" name="access_mode" value="{{ access_mode or '' }}">
+  <input type="hidden" id="qf-247" name="is_24_7" value="{{ 'true' if is_24_7 else '' }}">
+  <input type="hidden" id="qf-wc" name="wheelchair_accessible" value="{{ 'true' if wheelchair_accessible else '' }}">
+</form>
+
+<!-- Hero search -->
+<div class="search-hero">
+  <form method="get" action="/">
+    <!-- Preserve active sidebar filters when submitting hero search -->
+    {% if category_id %}<input type="hidden" name="category_id" value="{{ category_id }}">{% endif %}
+    {% if population_id %}<input type="hidden" name="population_id" value="{{ population_id }}">{% endif %}
+    {% if quadrant %}<input type="hidden" name="quadrant" value="{{ quadrant }}">{% endif %}
+    {% if cost_model %}<input type="hidden" name="cost_model" value="{{ cost_model }}">{% endif %}
+    {% if access_mode %}<input type="hidden" name="access_mode" value="{{ access_mode }}">{% endif %}
+    {% if is_24_7 %}<input type="hidden" name="is_24_7" value="true">{% endif %}
+    {% if wheelchair_accessible %}<input type="hidden" name="wheelchair_accessible" value="true">{% endif %}
+    {% if status and status != 'active' %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+    <div class="search-hero-row">
+      <input type="text" id="main-search" name="q" value="{{ q }}"
+             class="search-hero-input"
+             placeholder="Search services — shelter, food bank, detox, counselling…"
+             autocomplete="off" autofocus>
+      <button type="submit" class="btn btn-primary search-hero-btn">Search</button>
+    </div>
+  </form>
+
+  <div class="quick-filters">
+    <span style="font-size:12px; color:var(--muted); margin-right:0.25rem;">Quick:</span>
+    <button type="button" class="quick-pill {% if cost_model == 'free' %}active{% endif %}"
+            onclick="toggleQuick('qf-cost','free')">Free</button>
+    <button type="button" class="quick-pill {% if access_mode == 'walk_in' %}active{% endif %}"
+            onclick="toggleQuick('qf-access','walk_in')">Walk-in</button>
+    <button type="button" class="quick-pill {% if is_24_7 %}active{% endif %}"
+            onclick="toggleQuick('qf-247','true')">Open 24/7</button>
+    <button type="button" class="quick-pill {% if wheelchair_accessible %}active{% endif %}"
+            onclick="toggleQuick('qf-wc','true')">Wheelchair accessible</button>
+    {% if filters_active %}
+    <a href="/" class="quick-pill danger">Clear all ×</a>
+    {% endif %}
+  </div>
+
+  <div class="search-hint">Press <kbd>/</kbd> to focus search</div>
+</div>
 
 <div class="search-layout">
   <!-- Filters sidebar -->
   <aside class="filters">
-    <form method="get" action="/" id="search-form">
-      <div class="filter-group">
-        <label>Search</label>
-        <input type="text" name="q" value="{{ q }}" placeholder="e.g. detox, shelter, food bank…" autofocus>
-      </div>
+    <form method="get" action="/" id="filter-form">
+      <input type="hidden" name="q" value="{{ q }}">
 
       <div class="filter-group">
         <label>Category</label>
@@ -86,10 +145,10 @@
       </div>
 
       <div class="filter-group">
-        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+        <div style="display:flex; flex-direction:column; gap:0.625rem;">
           <label class="check-item" style="cursor:pointer;">
             <input type="checkbox" name="is_24_7" value="true" {% if is_24_7 %}checked{% endif %} onchange="this.form.submit()">
-            <span>24 / 7</span>
+            <span>Open 24 / 7</span>
           </label>
           <label class="check-item" style="cursor:pointer;">
             <input type="checkbox" name="wheelchair_accessible" value="true" {% if wheelchair_accessible %}checked{% endif %} onchange="this.form.submit()">
@@ -98,9 +157,9 @@
         </div>
       </div>
 
-      <button type="submit" class="btn btn-primary" style="width:100%;">Search</button>
+      <button type="submit" class="btn btn-primary" style="width:100%;">Apply filters</button>
       {% if filters_active %}
-      <a href="/" class="btn btn-secondary" style="width:100%; margin-top:0.5rem; text-align:center;">Clear filters</a>
+      <a href="/" class="btn btn-secondary" style="width:100%; margin-top:0.5rem; text-align:center;">Clear all filters</a>
       {% endif %}
     </form>
 
@@ -145,7 +204,7 @@
             {% if r.cost_model == 'free' %}<span class="badge badge-free">Free</span>{% endif %}
             {% if r.access_mode == 'walk_in' %}<span class="badge badge-walkin">Walk-in</span>{% endif %}
             {% if r.is_24_7 %}<span class="badge badge-24-7">24/7</span>{% endif %}
-            {% if r.wheelchair_accessible %}<span class="badge badge-accessible">♿</span>{% endif %}
+            {% if r.wheelchair_accessible %}<span class="badge badge-accessible">Wheelchair</span>{% endif %}
             {% if r.indigenous_led %}<span class="badge badge-indigenous">Indigenous-led</span>{% endif %}
             {% for pop in item.populations %}
             <span class="pill">{{ pop }}</span>
@@ -163,9 +222,23 @@
     <div class="empty">
       <div class="empty-icon">🔍</div>
       <div class="empty-text">No services found</div>
-      <div class="empty-sub">Try different filters or <a href="/services/new" class="btn btn-primary btn-sm" style="display:inline-flex;margin-left:0.5rem;">add one</a></div>
+      <div class="empty-sub">
+        {% if filters_active %}
+          Try removing some filters — <a href="/" style="color:var(--accent);">clear all</a> to see everything.
+        {% else %}
+          Try a different search term, or <a href="/services/new" style="color:var(--accent);">add a service</a>.
+        {% endif %}
+      </div>
     </div>
     {% endif %}
   </div>
 </div>
+
+<script>
+function toggleQuick(id, value) {
+  const el = document.getElementById(id);
+  el.value = (el.value === value) ? '' : value;
+  document.getElementById('quick-form').submit();
+}
+</script>
 {% endblock %}
